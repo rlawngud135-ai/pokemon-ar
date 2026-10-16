@@ -55,11 +55,11 @@ function updateDebug() {
 scene.addEventListener('arReady', () => show('AR 준비 완료 - 마릴 카드를 비춰주세요'));
 scene.addEventListener('arError', () => show('AR 초기화 오류 - targets.mind 확인'));
 video.addEventListener('error', () => show('영상 파일 오류 - pokemon.mp4 확인'));
-target.addEventListener('targetFound', async () => {
+target.addEventListener('targetFound', () => {
   found = true;
   testBox.setAttribute('visible', true);
+
   show('마릴 인식 성공 - 빨간 상자 확인');
-  try { await video.play(); } catch (e) { show('인식 성공 - 영상 재생 제한: ' + e.name); }
   updateDebug();
 });
 target.addEventListener('targetLost', () => {
