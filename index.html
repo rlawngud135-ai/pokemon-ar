@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>마릴 생일 AR - 투명 배경</title>
+<title>마릴 생일 AR - 하트와 축하 문구</title>
 <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 <style>
@@ -45,6 +45,84 @@ AFRAME.registerComponent('alpha-video', {
   }
 });
 </script>
+<script>
+// 카드에 고정되는 생일 문구와 떠오르는 하트 효과
+AFRAME.registerComponent('birthday-effects', {
+  init: function () {
+    const group = new THREE.Group();
+    this.el.object3D.add(group);
+    this.effectGroup = group;
+
+    // 아이폰의 한글 시스템 폰트로 문구를 캔버스에 그립니다.
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, 1024, 256);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 116px system-ui, sans-serif';
+    ctx.lineWidth = 20;
+    ctx.strokeStyle = '#15487a';
+    ctx.strokeText('수연아 생일 축하해!', 512, 130);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('생일 축하해!', 512, 130);
+    const textTexture = new THREE.CanvasTexture(canvas);
+    textTexture.needsUpdate = true;
+    const text = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.08, 0.27),
+      new THREE.MeshBasicMaterial({map:textTexture, transparent:true, side:THREE.DoubleSide, depthWrite:false})
+    );
+    text.position.set(0, 0.85, 0.08);
+    text.renderOrder = 10;
+    group.add(text);
+    this.textMesh = text;
+
+    const heartCanvas = document.createElement('canvas');
+    heartCanvas.width = 128;
+    heartCanvas.height = 128;
+    const hc = heartCanvas.getContext('2d');
+    hc.fillStyle = '#ff74b9';
+    hc.shadowColor = '#ffffff';
+    hc.shadowBlur = 9;
+    hc.beginPath();
+    hc.moveTo(64, 111);
+    hc.bezierCurveTo(12, 73, 4, 43, 26, 26);
+    hc.bezierCurveTo(46, 8, 63, 26, 64, 37);
+    hc.bezierCurveTo(70, 15, 91, 9, 108, 26);
+    hc.bezierCurveTo(130, 51, 109, 79, 64, 111);
+    hc.fill();
+    const heartTexture = new THREE.CanvasTexture(heartCanvas);
+    this.hearts = [];
+    for (let i=0; i<9; i++) {
+      const mat = new THREE.MeshBasicMaterial({map:heartTexture, transparent:true, opacity:0, side:THREE.DoubleSide, depthWrite:false});
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.16), mat);
+      mesh.renderOrder = 11;
+      group.add(mesh);
+      this.hearts.push({mesh, phase:i/9, side:i%2===0?-1:1});
+    }
+    group.visible = false;
+    this.el.addEventListener('targetFound', () => {group.visible = true;});
+    this.el.addEventListener('targetLost', () => {group.visible = false;});
+  },
+  tick: function (time) {
+    if (!this.effectGroup.visible) return;
+    const t = time/1000;
+    const pulse = 1 + 0.035*Math.sin(t*3);
+    this.textMesh.scale.set(pulse,pulse,1);
+    for (const h of this.hearts) {
+      const progress = (t*0.27+h.phase)%1;
+      const x = h.side*(0.43+0.12*Math.sin(progress*6.28+h.phase*8));
+      const y = -0.55+progress*1.48;
+      const size = 0.65+0.55*Math.sin(Math.PI*progress);
+      h.mesh.position.set(x,y,0.11);
+      h.mesh.scale.set(size,size,1);
+      h.mesh.material.opacity = Math.min(1,progress*7,(1-progress)*5)*0.95;
+      h.mesh.rotation.z = 0.15*Math.sin(t*2+h.phase*10);
+    }
+  }
+});
+</script>
 </head>
 <body>
 <div id="status">AR 시작 중...</div>
@@ -54,7 +132,7 @@ AFRAME.registerComponent('alpha-video', {
     <video id="pokemonVideo" src="./pokemon_alpha.mp4" preload="auto" muted loop playsinline webkit-playsinline crossorigin="anonymous"></video>
   </a-assets>
   <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-  <a-entity id="target" mindar-image-target="targetIndex: 0">
+  <a-entity id="target" mindar-image-target="targetIndex: 0" birthday-effects>
     <a-plane id="videoPlane" width="1" height="1.3968" position="0 0 0.01" alpha-video></a-plane>
   </a-entity>
 </a-scene>
