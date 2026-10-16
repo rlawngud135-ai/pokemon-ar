@@ -1,161 +1,85 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport"
- content="width=device-width,initial-scale=1">
-<title>마릴 포켓몬카드 AR</title>
-
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>마릴 생일 AR - 투명 배경</title>
 <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-
 <style>
-body {
-  margin: 0;
-  overflow: hidden;
-  font-family: system-ui, sans-serif;
-}
-#status {
-  position: fixed;
-  top: 15px;
-  left: 5%;
-  width: 90%;
-  z-index: 9999;
-  padding: 12px;
-  box-sizing: border-box;
-  border-radius: 12px;
-  background: rgba(0,0,0,.8);
-  color: white;
-  text-align: center;
-}
-#play {
-  position: fixed;
-  bottom: 30px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 9999;
-  border: none;
-  border-radius: 30px;
-  padding: 15px 24px;
-  background: #ffdf48;
-  font-weight: bold;
-  font-size: 16px;
-  white-space: nowrap;
-}
+body{margin:0;overflow:hidden;font-family:system-ui,sans-serif}
+#status{position:fixed;top:15px;left:5%;width:90%;z-index:9999;padding:12px;box-sizing:border-box;border-radius:12px;background:rgba(0,0,0,.8);color:white;text-align:center}
+#play{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:9999;border:0;border-radius:30px;padding:15px 24px;background:#ffdf48;font-weight:bold;font-size:16px;white-space:nowrap}
 </style>
-</head>
-
-<body>
-
-<div id="status">AR 시작 중...</div>
-<button id="play" type="button">
-  영상 재생하기
-</button>
-
-<a-scene
- mindar-image="imageTargetSrc: ./targets.mind; autoStart: true;"
- color-space="sRGB"
- renderer="colorManagement: true"
- vr-mode-ui="enabled: false"
- device-orientation-permission-ui="enabled: false">
-
- <a-assets timeout="30000">
-  <video
-   id="pokemonVideo"
-   src="./pokemon.mp4"
-   preload="auto"
-   muted
-   loop
-   playsinline
-   webkit-playsinline
-   crossorigin="anonymous">
-  </video>
- </a-assets>
-
- <a-camera
-  position="0 0 0"
-  look-controls="enabled: false">
- </a-camera>
-
- <a-entity
-  id="target"
-  mindar-image-target="targetIndex: 0">
-
-  <a-plane
-   id="videoPlane"
-   width="1"
-   height="1.3968"
-   position="0 0 0.01"
-   material="shader: flat; src: #pokemonVideo; side: double"
-   visible="true">
-  </a-plane>
-
- </a-entity>
-</a-scene>
-
 <script>
-const scene = document.querySelector("a-scene");
-const target = document.querySelector("#target");
-const video = document.querySelector("#pokemonVideo");
-const plane = document.querySelector("#videoPlane");
-const status = document.querySelector("#status");
-const button = document.querySelector("#play");
-
-let found = false;
-
-function show(message) {
-  status.textContent = message;
-}
-
-scene.addEventListener("arReady", () => {
-  show("마릴 카드를 비춰주세요!");
-});
-
-scene.addEventListener("arError", () => {
-  show("AR 초기화 오류");
-});
-
-video.addEventListener("error", () => {
-  show("영상 파일 오류 - pokemon.mp4 확인");
-});
-
-video.addEventListener("playing", () => {
-  if (found) show("마릴 AR 재생 중!");
-});
-
-target.addEventListener("targetFound", async () => {
-  found = true;
-  show("마릴 카드 인식 성공!");
-
-  try {
-    await video.play();
-  } catch (error) {
-    show("아래 영상 재생 버튼을 눌러주세요");
-  }
-});
-
-target.addEventListener("targetLost", () => {
-  found = false;
-  video.pause();
-  show("마릴 카드를 다시 비춰주세요");
-});
-
-button.addEventListener("click", async () => {
-  video.muted = true;
-
-  try {
-    await video.play();
-
-    if (!found) {
-      video.pause();
-      show("마릴 카드를 비춰주세요");
-    }
-  } catch (error) {
-    show("재생 실패: " + error.name);
+// pokemon_alpha.mp4: 왼쪽 절반은 컬러, 오른쪽 절반은 투명도(흰색=보임)
+AFRAME.registerComponent('alpha-video', {
+  init: function () {
+    const el = this.el;
+    const video = document.getElementById('pokemonVideo');
+    const texture = new THREE.VideoTexture(video);
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    const material = new THREE.ShaderMaterial({
+      uniforms: {videoMap: {value: texture}},
+      vertexShader: `varying vec2 vUv;
+        void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+      fragmentShader: `uniform sampler2D videoMap;
+        varying vec2 vUv;
+        void main(){
+          vec3 rgb=texture2D(videoMap,vec2(vUv.x*0.5,vUv.y)).rgb;
+          float alpha=texture2D(videoMap,vec2(0.5+vUv.x*0.5,vUv.y)).r;
+          gl_FragColor=vec4(rgb,alpha);
+        }`,
+      transparent: true,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const apply = () => {
+      const mesh = el.getObject3D('mesh');
+      if (mesh) mesh.material = material;
+    };
+    el.addEventListener('object3dset', apply);
+    el.addEventListener('loaded', apply);
+    apply();
   }
 });
 </script>
-
+</head>
+<body>
+<div id="status">AR 시작 중...</div>
+<button id="play" type="button">영상 재생하기</button>
+<a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: true;" color-space="sRGB" renderer="colorManagement: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+  <a-assets timeout="30000">
+    <video id="pokemonVideo" src="./pokemon_alpha.mp4" preload="auto" muted loop playsinline webkit-playsinline crossorigin="anonymous"></video>
+  </a-assets>
+  <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+  <a-entity id="target" mindar-image-target="targetIndex: 0">
+    <a-plane id="videoPlane" width="1" height="1.3968" position="0 0 0.01" alpha-video></a-plane>
+  </a-entity>
+</a-scene>
+<script>
+const scene=document.querySelector('a-scene');
+const target=document.querySelector('#target');
+const video=document.querySelector('#pokemonVideo');
+const status=document.querySelector('#status');
+const button=document.querySelector('#play');
+let found=false;
+function show(msg){status.textContent=msg;}
+scene.addEventListener('arReady',()=>show('마릴 카드를 비춰주세요!'));
+scene.addEventListener('arError',()=>show('AR 초기화 오류'));
+video.addEventListener('error',()=>show('영상 파일 오류: pokemon_alpha.mp4 확인'));
+video.addEventListener('playing',()=>{if(found)show('마릴 투명 AR 재생 중!');});
+target.addEventListener('targetFound',async()=>{
+  found=true;show('마릴 카드 인식 성공!');
+  try{await video.play();}catch(e){show('아래 영상 재생 버튼을 눌러주세요');}
+});
+target.addEventListener('targetLost',()=>{found=false;video.pause();show('마릴 카드를 다시 비춰주세요');});
+button.addEventListener('click',async()=>{
+  video.muted=true;
+  try{await video.play();if(!found){video.pause();show('마릴 카드를 비춰주세요');}}
+  catch(e){show('재생 실패: '+e.name);}
+});
+</script>
 </body>
 </html>
