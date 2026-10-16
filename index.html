@@ -5,38 +5,72 @@
   <meta charset="UTF-8">
   <meta name="viewport"
         content="width=device-width, initial-scale=1">
-  <title>마릴 AR 인식 테스트</title>
+  <meta name="apple-mobile-web-app-capable"
+        content="yes">
+
+  <title>마릴 포켓몬카드 AR</title>
 
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
     body { margin: 0; overflow: hidden; }
+
     #status {
       position: fixed;
-      top: 15px;
+      top: 20px;
       left: 5%;
       width: 90%;
       z-index: 9999;
-      background: rgba(0,0,0,.8);
+      background: rgba(0,0,0,.75);
       color: white;
-      padding: 15px;
-      box-sizing: border-box;
       text-align: center;
+      padding: 12px;
       border-radius: 12px;
+      box-sizing: border-box;
+    }
+
+    #play {
+      position: fixed;
+      bottom: 35px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      padding: 14px 24px;
+      border: 0;
+      border-radius: 30px;
+      background: #ffdf48;
       font-size: 16px;
+      font-weight: bold;
     }
   </style>
 </head>
+
 <body>
-  <div id="status">AR 시작 대기 중...</div>
+  <div id="status">AR 시작 중...</div>
+  <button id="play">영상 재생 / 소리 켜기</button>
 
   <a-scene
     mindar-image="imageTargetSrc: ./targets.mind?v=2; autoStart: true;"
     embedded
     color-space="sRGB"
+    renderer="colorManagement: true"
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
+
+    <a-assets timeout="20000">
+      <video
+        id="pokemonVideo"
+        src="./pokemon.mp4"
+        preload="auto"
+        autoplay
+        muted
+        loop
+        playsinline
+        webkit-playsinline
+        crossorigin="anonymous">
+      </video>
+    </a-assets>
 
     <a-camera
       position="0 0 0"
@@ -47,42 +81,72 @@
       id="target"
       mindar-image-target="targetIndex: 0">
 
-      <a-plane
-        color="#00FF00"
-        opacity="0.9"
+      <a-video
+        src="#pokemonVideo"
         width="1"
         height="1.3968"
-        position="0 0 0.01">
-      </a-plane>
+        position="0 0 0.01"
+        material="shader: flat; side: double">
+      </a-video>
 
     </a-entity>
   </a-scene>
 
   <script>
-    const status = document.querySelector("#status");
-    const scene = document.querySelector("a-scene");
+    const video = document.querySelector("#pokemonVideo");
     const target = document.querySelector("#target");
+    const scene = document.querySelector("a-scene");
+    const status = document.querySelector("#status");
+    const button = document.querySelector("#play");
+
+    let found = false;
 
     scene.addEventListener("arReady", () => {
-      status.textContent =
-        "AR 준비 완료 - 마릴 카드를 비춰주세요";
+      status.textContent = "마릴 카드를 비춰주세요!";
     });
 
     scene.addEventListener("arError", () => {
-      status.textContent =
-        "AR 오류 - targets.mind 또는 카메라 확인";
+      status.textContent = "AR 초기화 오류";
     });
 
-    target.addEventListener("targetFound", () => {
-      status.textContent =
-        "인식 성공! 마릴 카드를 찾았습니다.";
-      status.style.background = "green";
+    video.addEventListener("error", () => {
+      status.textContent = "영상 파일을 불러오지 못했습니다.";
+    });
+
+    target.addEventListener("targetFound", async () => {
+      found = true;
+      status.textContent = "마릴 카드 인식 성공!";
+
+      try {
+        await video.play();
+        status.textContent = "마릴 AR 재생 중!";
+      } catch (err) {
+        status.textContent = "아래 재생 버튼을 눌러주세요.";
+      }
     });
 
     target.addEventListener("targetLost", () => {
-      status.textContent =
-        "인식 끊김 - 카드를 다시 비춰주세요";
-      status.style.background = "rgba(0,0,0,.8)";
+      found = false;
+      video.pause();
+      status.textContent = "마릴 카드를 다시 비춰주세요.";
+    });
+
+    button.addEventListener("click", async () => {
+      video.muted = false;
+
+      try {
+        if (found) {
+          await video.play();
+          status.textContent = "마릴 AR 재생 중!";
+        } else {
+          // 사용자 터치로 영상 재생 권한 준비
+          await video.play();
+          video.pause();
+          status.textContent = "마릴 카드를 비춰주세요!";
+        }
+      } catch (err) {
+        status.textContent = "영상 재생 실패 - MP4 형식 확인";
+      }
     });
   </script>
 </body>
