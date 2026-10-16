@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>마릴 AR 렌더링 확인</title>
+<script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+<style>
+body{margin:0;overflow:hidden;font-family:system-ui,sans-serif}
+#status{position:fixed;z-index:9999;top:12px;left:5%;width:90%;box-sizing:border-box;padding:12px;border-radius:12px;background:#161616dd;color:white;text-align:center}
+#debug{position:fixed;z-index:9999;bottom:16px;left:12px;right:12px;box-sizing:border-box;background:#161616dd;color:#80ffb4;padding:10px;border-radius:8px;font-size:12px;white-space:pre-line}
+</style>
+</head>
+<body>
+<div id="status">AR 시작 중...</div>
+<div id="debug">대기 중</div>
+<a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiScanning: true;" embedded renderer="colorManagement: true;" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+<a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+<a-entity id="target" mindar-image-target="targetIndex: 0">
+<a-plane id="red" position="0 0 0.01" width="1" height="1.3968" material="color: #ff0000; shader: flat; side: double; opacity: 0.8; transparent: true"></a-plane>
+<a-box id="box" position="0 0 0.25" width="0.45" height="0.45" depth="0.25" material="color: #00ff00; shader: flat; side: double"></a-box>
+</a-entity>
+</a-scene>
+<script>
+const scene=document.querySelector('a-scene'),target=document.querySelector('#target'),box=document.querySelector('#box'),status=document.querySelector('#status'),debug=document.querySelector('#debug');
+let found=false;
+scene.addEventListener('arReady',()=>status.textContent='AR 준비 완료 - 카드를 비춰주세요');
+scene.addEventListener('arError',()=>status.textContent='AR 초기화 오류');
+target.addEventListener('targetFound',()=>{found=true;status.textContent='카드 인식 성공 - 빨강/초록 도형 확인';});
+target.addEventListener('targetLost',()=>{found=false;status.textContent='카드 인식 끊김';});
+function update(){
+const cam=scene.camera;
+debug.textContent='인식 이벤트: '+found+'\nScene loaded: '+scene.hasLoaded+'\nRenderer: '+Boolean(scene.renderer)+'\nCamera: '+Boolean(cam)+'\nTarget visible: '+target.object3D.visible+'\nBox visible: '+box.object3D.visible+'\nTarget world position: '+target.object3D.getWorldPosition(new THREE.Vector3()).toArray().map(x=>x.toFixed(2)).join(', ');
+}
+setInterval(update,500);update();
+</script>
+</body>
+</html>
