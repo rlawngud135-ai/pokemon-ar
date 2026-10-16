@@ -1,0 +1,92 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+  <style>
+    body { margin: 0; overflow: hidden; }
+    #play {
+      position: fixed;
+      bottom: 25px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      padding: 12px 22px;
+    }
+  </style>
+</head>
+
+<body>
+  <button id="play">영상 재생 / 소리 켜기</button>
+
+  <a-scene
+    mindar-image="imageTargetSrc: ./targets.mind;"
+    embedded
+    color-space="sRGB"
+    renderer="colorManagement: true"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false">
+
+    <a-assets>
+      <video
+        id="cardVideo"
+        src="./pokemon.mp4"
+        preload="auto"
+        playsinline
+        webkit-playsinline
+        muted
+        loop
+        crossorigin="anonymous">
+      </video>
+    </a-assets>
+
+    <a-camera
+      position="0 0 0"
+      look-controls="enabled: false">
+    </a-camera>
+
+    <a-entity
+      id="target"
+      mindar-image-target="targetIndex: 0">
+
+      <a-video
+        src="#cardVideo"
+        width="1"
+        height="1.3968"
+        position="0 0 0.01">
+      </a-video>
+
+    </a-entity>
+  </a-scene>
+
+  <script>
+    const video = document.querySelector("#cardVideo");
+    const target = document.querySelector("#target");
+    const button = document.querySelector("#play");
+    let visible = false;
+
+    target.addEventListener("targetFound", () => {
+      visible = true;
+      video.play().catch(() => {});
+    });
+
+    target.addEventListener("targetLost", () => {
+      visible = false;
+      video.pause();
+    });
+
+    button.addEventListener("click", async () => {
+      video.muted = false;
+      if (visible) {
+        try { await video.play(); } catch (e) {}
+      }
+    });
+  </script>
+</body>
+</html>
