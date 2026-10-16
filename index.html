@@ -92,6 +92,14 @@ body {
     id="target"
     mindar-image-target="targetIndex: 0">
 
+<a-plane
+  color="#FF0000"
+  width="1"
+  height="1.3968"
+  position="0 0 0.005"
+  material="shader: flat; side: double">
+</a-plane>
+
     <a-plane
       id="arVideo"
       width="1"
@@ -195,6 +203,32 @@ button.addEventListener("click", async () => {
 });
 
 updateDebug();
+</script>
+
+<div id="previewBox" style="
+  position:fixed;
+  right:10px;
+  bottom:100px;
+  width:110px;
+  z-index:99999;
+  background:#333;
+  padding:5px;
+  border:2px solid yellow;
+">
+  <div style="color:white;font-size:12px">
+    원본 영상
+  </div>
+</div>
+
+<script>
+const preview = document.querySelector("#previewBox");
+const originalVideo = document.querySelector("#pokemonVideo");
+
+originalVideo.style.width = "100%";
+originalVideo.style.height = "auto";
+originalVideo.style.display = "block";
+
+preview.appendChild(originalVideo);
 </script>
 
 </body>
