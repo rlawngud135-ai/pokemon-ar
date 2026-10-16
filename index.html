@@ -34,6 +34,38 @@ const cam=scene.camera;
 debug.textContent='인식 이벤트: '+found+'\nScene loaded: '+scene.hasLoaded+'\nRenderer: '+Boolean(scene.renderer)+'\nCamera: '+Boolean(cam)+'\nTarget visible: '+target.object3D.visible+'\nBox visible: '+box.object3D.visible+'\nTarget world position: '+target.object3D.getWorldPosition(new THREE.Vector3()).toArray().map(x=>x.toFixed(2)).join(', ');
 }
 setInterval(update,500);update();
+  
+const arCamera = document.querySelector("a-camera");
+
+function checkPosition() {
+  const cam = new THREE.Vector3();
+  const obj = new THREE.Vector3();
+
+  arCamera.object3D.getWorldPosition(cam);
+  target.object3D.getWorldPosition(obj);
+
+  const distance = cam.distanceTo(obj);
+
+  const positionInfo =
+    "\n카메라 위치: " +
+    cam.x.toFixed(2) + ", " +
+    cam.y.toFixed(2) + ", " +
+    cam.z.toFixed(2) +
+    "\n카드 위치: " +
+    obj.x.toFixed(2) + ", " +
+    obj.y.toFixed(2) + ", " +
+    obj.z.toFixed(2) +
+    "\n카메라-카드 거리: " +
+    distance.toFixed(2);
+
+  const debugPanel = document.querySelector("#debug");
+  if (debugPanel) {
+    debugPanel.textContent = positionInfo;
+  }
+}
+
+setInterval(checkPosition, 500);
+
 </script>
 </body>
 </html>
